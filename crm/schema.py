@@ -2,11 +2,13 @@
 import graphene
 from graphene import Field, List, Mutation, InputObjectType, ID, String, Decimal, Int, Float
 from .models import Customer, Product, Order
-from .types import CustomerType, ProductType, OrderType
+from .graphql_types import CustomerType, ProductType, OrderType
 from django.db import transaction
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
 import re
 from graphql import GraphQLError
+from graphene_django.filter import DjangoFilterConnectionField
+from .filters import CustomerFilter, ProductFilter, OrderFilter
 
 # --- Inputs ---
 
@@ -121,20 +123,22 @@ class CreateOrder(Mutation):
         return CreateOrder(order=order)
 
 # --- Queries ---
-
 class Query(graphene.ObjectType):
-    all_customers = graphene.List(CustomerType)
-    all_products = graphene.List(ProductType)
-    all_orders = graphene.List(OrderType)
+    all_customers = DjangoFilterConnectionField(CustomerType, filterset_class=CustomerFilter)
+    all_products = DjangoFilterConnectionField(ProductType, filterset_class=ProductFilter)
+    all_orders = DjangoFilterConnectionField(OrderType, filterset_class=OrderFilter)
+    # all_customers = graphene.List(CustomerType)
+    # all_products = graphene.List(ProductType)
+    # all_orders = graphene.List(OrderType)
 
-    def resolve_all_customers(root, info):
-        return Customer.objects.all()
+    # def resolve_all_customers(root, info):
+    #     return Customer.objects.all()
 
-    def resolve_all_products(root, info):
-        return Product.objects.all()
+    # def resolve_all_products(root, info):
+    #     return Product.objects.all()
 
-    def resolve_all_orders(root, info):
-        return Order.objects.all()
+    # def resolve_all_orders(root, info):
+    #     return Order.objects.all()
 
 
 class Mutation(graphene.ObjectType):

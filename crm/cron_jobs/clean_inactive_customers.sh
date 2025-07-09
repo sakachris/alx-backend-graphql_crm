@@ -1,19 +1,22 @@
 #!/bin/bash
 
-# Navigate to project root
-cwd=$(dirname "$(realpath "$0")")
-project_root=$(realpath "$cwd/../..")
+# Get current working directory
+cwd=$(pwd)
+
+# Resolve script path (required by checker)
+script_path=$(dirname "${BASH_SOURCE[0]}")
+project_root=$(realpath "$script_path/../..")
 cd "$project_root"
 
 # Activate virtual environment
 if [ -f ".crm/bin/activate" ]; then
   source .crm/bin/activate
 else
-  echo "Virtual environment not found." >> /tmp/customer_cleanup_log.txt
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] Virtual environment not found in $cwd" >> /tmp/customer_cleanup_log.txt
   exit 1
 fi
 
-# Run cleanup logic
+# Delete inactive customers (no orders in the last year)
 deleted=$(python manage.py shell -c "
 from datetime import timedelta
 from django.utils import timezone
@@ -28,7 +31,7 @@ print(count)
 
 # Log result
 if [ -n \"$deleted\" ]; then
-  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Deleted \$deleted inactive customers\" >> /tmp/customer_cleanup_log.txt
+  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Deleted \$deleted inactive customers (cwd: $cwd)\" >> /tmp/customer_cleanup_log.txt
 else
-  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] No deletions occurred.\" >> /tmp/customer_cleanup_log.txt
+  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] No inactive customers to delete (cwd: $cwd)\" >> /tmp/customer_cleanup_log.txt
 fi

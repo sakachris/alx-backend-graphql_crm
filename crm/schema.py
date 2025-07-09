@@ -122,6 +122,25 @@ class CreateOrder(Mutation):
         order.products.set(products)
         return CreateOrder(order=order)
 
+
+class UpdateLowStockProducts(Mutation):
+    updated_products = graphene.List(lambda: ProductType)
+    message = graphene.String()
+
+    def mutate(self, info):
+        low_stock_products = Product.objects.filter(stock__lt=10)
+        updated = []
+
+        for product in low_stock_products:
+            product.stock += 10
+            product.save()
+            updated.append(product)
+
+        return UpdateLowStockProducts(
+            updated_products=updated,
+            message=f"{len(updated)} products restocked successfully."
+        )
+
 # --- Queries ---
 class Query(graphene.ObjectType):
     all_customers = DjangoFilterConnectionField(CustomerType, filterset_class=CustomerFilter)
@@ -143,48 +162,6 @@ class Query(graphene.ObjectType):
 
     def resolve_hello(root, info):
         return "CRM is alive"
-
-
-# class UpdateLowStockProducts(graphene.Mutation):
-#     class Output:
-#         updated_products = graphene.List(ProductType)
-#         message = graphene.String()
-
-#     updated_products = graphene.List(ProductType)
-#     message = graphene.String()
-
-#     def mutate(self, info):
-#         low_stock_products = Product.objects.filter(stock__lt=10)
-#         updated = []
-
-#         for product in low_stock_products:
-#             product.stock += 10
-#             product.save()
-#             updated.append(product)
-
-#         return UpdateLowStockProducts(
-#             updated_products=updated,
-#             message=f"{len(updated)} products restocked successfully."
-#         )
-
-
-class UpdateLowStockProducts(graphene.Mutation):
-    updated_products = graphene.List(lambda: ProductType)
-    message = graphene.String()
-
-    def mutate(self, info):
-        low_stock_products = Product.objects.filter(stock__lt=10)
-        updated = []
-
-        for product in low_stock_products:
-            product.stock += 10
-            product.save()
-            updated.append(product)
-
-        return UpdateLowStockProducts(
-            updated_products=updated,
-            message=f"{len(updated)} products restocked successfully."
-        )
 
 
 class Mutation(graphene.ObjectType):

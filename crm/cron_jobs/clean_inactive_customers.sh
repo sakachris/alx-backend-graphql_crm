@@ -1,29 +1,34 @@
 #!/bin/bash
 
-# Define paths
-LOG_FILE="/tmp/customer_cleanup_log.txt"
-TIMESTAMP=$(date "+%Y-%m-%d %H:%M:%S")
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-VENV_ACTIVATE="$PROJECT_DIR/.crm/bin/activate"
+# Navigate to project root
+cwd=$(dirname "$(realpath "$0")")
+project_root=$(realpath "$cwd/../..")
+cd "$project_root"
 
 # Activate virtual environment
-source "$VENV_ACTIVATE"
+if [ -f ".crm/bin/activate" ]; then
+  source .crm/bin/activate
+else
+  echo "Virtual environment not found." >> /tmp/customer_cleanup_log.txt
+  exit 1
+fi
 
-# Navigate to project root
-cd "$PROJECT_DIR"
-
-# Run Django shell command
-DELETED=$(python manage.py shell -c "
-from datetime import datetime, timedelta
-from crm.models import Customer
+# Run cleanup logic
+deleted=$(python manage.py shell -c "
+from datetime import timedelta
 from django.utils import timezone
+from crm.models import Customer
 
 cutoff = timezone.now() - timedelta(days=365)
-to_delete = Customer.objects.exclude(order__order_date__gte=cutoff).distinct()
-deleted_count = to_delete.count()
-to_delete.delete()
-print(deleted_count)
+qs = Customer.objects.exclude(order__order_date__gte=cutoff).distinct()
+count = qs.count()
+qs.delete()
+print(count)
 ")
 
 # Log result
-echo "[$TIMESTAMP] Deleted $DELETED inactive customers" >> "$LOG_FILE"
+if [ -n \"$deleted\" ]; then
+  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] Deleted \$deleted inactive customers\" >> /tmp/customer_cleanup_log.txt
+else
+  echo \"[$(date '+%Y-%m-%d %H:%M:%S')] No deletions occurred.\" >> /tmp/customer_cleanup_log.txt
+fi

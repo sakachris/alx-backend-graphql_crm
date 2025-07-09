@@ -139,6 +139,10 @@ class Query(graphene.ObjectType):
 
     # def resolve_all_orders(root, info):
     #     return Order.objects.all()
+    hello = graphene.String()
+
+    def resolve_hello(root, info):
+        return "CRM is alive"
 
 
 class Mutation(graphene.ObjectType):
